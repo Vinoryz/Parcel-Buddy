@@ -65,6 +65,8 @@ class _ScanPageState extends State<ScanPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _imageFile != null
+            ? Image.file(_imageFile!, height: 200)
+            : const Text('No image selected.'),
           const SizedBox(height: 16),
         ],
       ),
