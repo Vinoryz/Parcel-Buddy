@@ -34,14 +34,37 @@ ParcelBuddy solves the "Lobby Chaos" in student housing. Instead of scrolling th
 
 ### A. Cloud Schema (Firestore)
 
+**Collection: `organizations`**
+
+  * `orgId` (String): Document ID
+  * `name` (String)
+  * `address` (String)
+
+**Collection: `memberships`**
+
+  * `membershipId` (String): Document ID
+  * `userId` (String)
+  * `orgId` (String)
+  * `role` (String): "admin" or "member" (for managing members only)
+  * `joinedAt` (Timestamp)
+
+**Collection: `users`**
+
+  * `userId` (String): Document ID
+  * `name`, `email`, etc.
+  * `organizations`: [orgId, orgId, ...]
+
 **Collection: `lobby_parcels`**
 
   * `id` (String): Document ID
   * `resi_number` (String): Receipt/Tracking number
-  * `photo_url` (String): Link to Firebase Storage
+  * `orgId` (String): Organization this package belongs to
   * `uploader_name` (String): Name of the student who scanned it
+  * `uploader_id` (String): User ID of uploader (for edit/delete restriction)
   * `status` (String): "WAITING" or "CLAIMED"
   * `timestamp` (ServerTimestamp)
+
+> Only the uploader can edit or delete their package. Other organization members can view but not modify packages.
 
 ### B. Local Relational Schema (Room DB)
 
@@ -108,3 +131,37 @@ ParcelBuddy solves the "Lobby Chaos" in student housing. Instead of scrolling th
 3.  **The "Wait" State:** Since the project is 40% of your grade, make sure your Demo Video explicitly points out every requirement (e.g., "Now I am editing a local record, which demonstrates CRUD on a relational database").
 
 **You are now cleared for development. Good luck, Dev.**
+
+-----
+
+## ⚡ Fast-Track Implementation Plan (Last 1 Day 20 Hours)
+
+1. **Organization & Membership**
+   - Implement Firestore collections: `organizations`, `memberships`, `users`, `lobby_parcels`.
+   - On login, fetch user’s organizations and store in app state.
+   - On Scan/Lobby/History, let user select organization from a dropdown (if >1).
+
+2. **Scan & Confirm Package (No Image Upload)**
+   - Scan page: allow manual resi entry or scan (barcode/QR/OCR).
+   - After resi is entered/scanned, query `lobby_parcels` for a match in the selected organization.
+   - If found, show package info and allow confirmation/claim.
+   - If not found, show “No package found” message.
+
+3. **Lobby Page**
+   - Show real-time list of packages for the selected organization.
+   - Only uploader can see edit/delete buttons for their own packages.
+   - Others can only view.
+
+4. **History Page**
+   - Show user’s personal log (from local DB or Firestore, as time allows).
+   - Allow editing notes and deleting records.
+
+5. **Roles & Membership Management**
+   - Use `role` in `memberships` for admin/member (admin can manage members, not packages).
+   - Only uploader can edit/delete their package.
+
+6. **Polish & Submission**
+   - Add basic validation (required fields, resi format).
+   - Handle edge cases (no internet, empty fields).
+   - Polish UI minimally (colors, icons).
+   - Prepare demo video and update README.
