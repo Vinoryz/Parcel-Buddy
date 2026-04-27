@@ -43,6 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         _errorCode = e.code;
+        _isLoading = false;
       });
     }
 
@@ -63,8 +64,13 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         _errorCode = e.code;
+        _isLoadingGuest = false;
       });
     }
+    
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override

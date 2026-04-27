@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:midterm/app/account.dart';
+import 'package:midterm/app/scan.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,13 +13,14 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
 
   static const List<Widget> _pages = <Widget>[
-    Center(child: Text('Scan')),
+    // Center(child: Text('Scan')),
+    ScanPage(),
     Center(child: Text('Lobby')),
     Center(child: Text('History')),
   ];
 
   static const List<String> _titles = <String>[
-    'Scan',
+    'Package Scan',
     'Lobby',
     'History',
   ];

@@ -6,7 +6,6 @@ As your Senior System Analyst, I have structured this to ensure you hit every pe
 
 # 📦 Project Plan: ParcelBuddy
 
-**Project Lead:** Muhammad Davin Aulia Risky  
 **Classification:** Logistics / Community Utility  
 **Sprint Duration:** 5 Days
 
