@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -38,10 +39,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text, 
         password: _passwordController.text,
       );
+      String userId = userCredential.user!.uid;
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).set({
+        // 'name': name,
+        'email': _emailController.text,
+      });
       navigateLogin();
     } on FirebaseAuthException catch (e) {
       setState(() {

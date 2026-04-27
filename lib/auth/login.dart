@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -35,10 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text, 
         password: _passwordController.text,
       );
+      String userId = userCredential.user!.uid;
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).get();
       navigateHome();
     } on FirebaseAuthException catch (e) {
       setState(() {
