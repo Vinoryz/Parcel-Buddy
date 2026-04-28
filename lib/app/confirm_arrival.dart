@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Opened when a user taps an Incoming (WAITING) package in the Lobby.
@@ -34,29 +35,46 @@ class _ConfirmArrivalPageState extends State<ConfirmArrivalPage> {
     super.dispose();
   }
 
-  Future<void> _scanWithCamera() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+  Future<void> _scanLabel(ImageSource source) async {
+    final picked = await ImagePicker().pickImage(source: source);
     if (picked == null) return;
 
     setState(() { _isLoading = true; _scanned = false; });
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final inputImage = InputImage.fromFilePath(picked.path);
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final barcodeScanner = BarcodeScanner();
     try {
-      final recognized = await recognizer.processImage(InputImage.fromFilePath(picked.path));
-      final match = RegExp(r'\b[A-Z0-9]{8,20}\b').firstMatch(recognized.text.toUpperCase());
-      if (match != null) {
-        _resiCtrl.text = match.group(0)!;
-        setState(() => _scanned = true);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No resi found. Please type it manually.')),
-          );
+      final barcodes = await barcodeScanner.processImage(inputImage);
+      bool barcodeFound = false;
+
+      for (Barcode barcode in barcodes) {
+        if (barcode.rawValue != null) {
+          _resiCtrl.text = barcode.rawValue!;
+          setState(() => _scanned = true);
+          barcodeFound = true;
+          break;
+        }
+      }
+
+      if (!barcodeFound) {
+        final recognized = await textRecognizer.processImage(inputImage);
+        final match = RegExp(r'\b[A-Z0-9]{8,20}\b').firstMatch(recognized.text.toUpperCase());
+        if (match != null) {
+          _resiCtrl.text = match.group(0)!;
+          setState(() => _scanned = true);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No barcode or resi found. Please type it manually.')),
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan error: $e')));
     } finally {
-      recognizer.close();
+      textRecognizer.close();
+      barcodeScanner.close();
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -136,40 +154,54 @@ class _ConfirmArrivalPageState extends State<ConfirmArrivalPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Confirm Arrival'), centerTitle: true),
       body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: size.width * 0.08,
-          vertical: size.height * 0.04,
-        ),
-        child: Column(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Icon(Icons.qr_code_scanner, size: 72, color: Colors.indigo),
-            SizedBox(height: size.height * 0.02),
+            const SizedBox(height: 16),
             Text(
               'Package for: ${widget.ownerName}',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: size.height * 0.01),
+            const SizedBox(height: 8),
             const Text(
               'Scan or type the resi on the physical package to confirm it has arrived.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.black54),
             ),
-            SizedBox(height: size.height * 0.04),
-            OutlinedButton.icon(
-              onPressed: _isLoading ? null : _scanWithCamera,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Scan Label with Camera'),
-              style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: size.height * 0.018)),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : () => _scanLabel(ImageSource.camera),
+                    icon: const Icon(Icons.camera_alt),
+                    label: const FittedBox(child: Text('Camera')),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : () => _scanLabel(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library),
+                    label: const FittedBox(child: Text('Gallery')),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: size.height * 0.02),
+            const SizedBox(height: 16),
             TextField(
               controller: _resiCtrl,
               textCapitalization: TextCapitalization.characters,
@@ -182,7 +214,7 @@ class _ConfirmArrivalPageState extends State<ConfirmArrivalPage> {
                     : null,
               ),
             ),
-            SizedBox(height: size.height * 0.04),
+            const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _confirmArrival,
               icon: _isLoading
@@ -193,7 +225,7 @@ class _ConfirmArrivalPageState extends State<ConfirmArrivalPage> {
                   : const Icon(Icons.done_all),
               label: const Text('Confirm Arrival'),
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: size.height * 0.018),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.indigo,
                 foregroundColor: Colors.white,
               ),
@@ -201,6 +233,7 @@ class _ConfirmArrivalPageState extends State<ConfirmArrivalPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

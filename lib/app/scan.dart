@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:midterm/providers/organization_provider.dart';
@@ -28,29 +29,46 @@ class _ScanPageState extends State<ScanPage> {
     super.dispose();
   }
 
-  Future<void> _scanWithCamera() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+  Future<void> _scanLabel(ImageSource source) async {
+    final picked = await ImagePicker().pickImage(source: source);
     if (picked == null) return;
 
     setState(() { _isLoading = true; _scanned = false; });
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final inputImage = InputImage.fromFilePath(picked.path);
+    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final barcodeScanner = BarcodeScanner();
     try {
-      final recognized = await recognizer.processImage(InputImage.fromFilePath(picked.path));
-      final match = RegExp(r'\b[A-Z0-9]{8,20}\b').firstMatch(recognized.text.toUpperCase());
-      if (match != null) {
-        _resiCtrl.text = match.group(0)!;
-        setState(() => _scanned = true);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No resi detected. Type it manually.')),
-          );
+      final barcodes = await barcodeScanner.processImage(inputImage);
+      bool barcodeFound = false;
+
+      for (Barcode barcode in barcodes) {
+        if (barcode.rawValue != null) {
+          _resiCtrl.text = barcode.rawValue!;
+          setState(() => _scanned = true);
+          barcodeFound = true;
+          break;
+        }
+      }
+
+      if (!barcodeFound) {
+        final recognized = await textRecognizer.processImage(inputImage);
+        final match = RegExp(r'\b[A-Z0-9]{8,20}\b').firstMatch(recognized.text.toUpperCase());
+        if (match != null) {
+          _resiCtrl.text = match.group(0)!;
+          setState(() => _scanned = true);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No barcode or resi detected. Type it manually.')),
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan error: $e')));
     } finally {
-      recognizer.close();
+      textRecognizer.close();
+      barcodeScanner.close();
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -160,12 +178,13 @@ class _ScanPageState extends State<ScanPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           const Icon(Icons.qr_code_scanner, size: 80, color: Colors.indigo),
           const SizedBox(height: 16),
           const Text(
@@ -181,13 +200,31 @@ class _ScanPageState extends State<ScanPage> {
             style: TextStyle(color: Colors.black54),
           ),
           const SizedBox(height: 32),
-          OutlinedButton.icon(
-            onPressed: _isLoading ? null : _scanWithCamera,
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Scan Label with Camera'),
-            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-          ),
-          const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : () => _scanLabel(ImageSource.camera),
+                    icon: const Icon(Icons.camera_alt),
+                    label: const FittedBox(child: Text('Camera')),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : () => _scanLabel(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library),
+                    label: const FittedBox(child: Text('Gallery')),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),const SizedBox(height: 16),
           TextField(
             controller: _resiCtrl,
             textCapitalization: TextCapitalization.characters,
@@ -214,6 +251,7 @@ class _ScanPageState extends State<ScanPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

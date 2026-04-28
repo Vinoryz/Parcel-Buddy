@@ -21,10 +21,12 @@ class _HistoryPageState extends State<HistoryPage> {
   Future<void> _loadLogs() async {
     setState(() => _isLoading = true);
     final data = await DatabaseHelper.instance.queryAllLogs();
-    if (mounted) setState(() {
-      _logs = data;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _logs = data;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _showEditDialog(int id, String currentNote) async {
@@ -42,7 +44,10 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               await DatabaseHelper.instance.updateNote(id, controller.text);
@@ -61,11 +66,19 @@ class _HistoryPageState extends State<HistoryPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Record'),
-        content: const Text('Are you sure you want to delete this history entry?'),
+        content: const Text(
+          'Are you sure you want to delete this history entry?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -89,9 +102,15 @@ class _HistoryPageState extends State<HistoryPage> {
           children: const [
             Icon(Icons.history_outlined, size: 80, color: Colors.grey),
             SizedBox(height: 16),
-            Text('No claim history yet.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            Text(
+              'No claim history yet.',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
             SizedBox(height: 8),
-            Text('Claimed packages will appear here.', style: TextStyle(color: Colors.grey)),
+            Text(
+              'Claimed packages will appear here.',
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -109,11 +128,15 @@ class _HistoryPageState extends State<HistoryPage> {
           final action = log[DatabaseHelper.colAction] as String;
           final note = log[DatabaseHelper.colNotes] as String? ?? '';
           final date = log[DatabaseHelper.colDate] as String;
-          final dateFormatted = date.length >= 16 ? date.substring(0, 16).replaceFirst('T', ' ') : date;
+          final dateFormatted = date.length >= 16
+              ? date.substring(0, 16).replaceFirst('T', ' ')
+              : date;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -127,26 +150,45 @@ class _HistoryPageState extends State<HistoryPage> {
                           color: Colors.green.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.check_circle, color: Colors.green),
+                        child: const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(resi,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            Text('$action · $dateFormatted',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                            Text(
+                              resi,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            Text(
+                              '$action · $dateFormatted',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: Colors.blue,
+                        ),
                         onPressed: () => _showEditDialog(id, note),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
                         onPressed: () => _deleteLog(id),
                       ),
                     ],
@@ -163,7 +205,12 @@ class _HistoryPageState extends State<HistoryPage> {
                         children: [
                           const Icon(Icons.notes, size: 16, color: Colors.grey),
                           const SizedBox(width: 6),
-                          Expanded(child: Text(note, style: const TextStyle(fontSize: 13))),
+                          Expanded(
+                            child: Text(
+                              note,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
                         ],
                       ),
                     ),

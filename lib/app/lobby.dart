@@ -18,7 +18,8 @@ class LobbyPage extends StatefulWidget {
   State<LobbyPage> createState() => _LobbyPageState();
 }
 
-class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMixin {
+class _LobbyPageState extends State<LobbyPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   StreamSubscription? _actionSub;
 
@@ -27,7 +28,9 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    _actionSub = NotificationService.actionStream.stream.listen(_handleNotificationTap);
+    _actionSub = NotificationService.actionStream.stream.listen(
+      _handleNotificationTap,
+    );
 
     // Check if app was launched from terminated state via notification
     AwesomeNotifications().getInitialNotificationAction().then((action) {
@@ -42,10 +45,10 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
 
   void _handleNotificationTap(Map<String, String?> payload) {
     if (!mounted || payload['docId'] == null) return;
-    
+
     // Switch to Arrived tab
     _tabController.animateTo(1);
-    
+
     // Open bottom sheet
     _showArrivedBottomSheet(
       context,
@@ -81,18 +84,24 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: DropdownButtonFormField<String>(
-              value: orgProvider.selectedOrgId,
+              initialValue: orgProvider.selectedOrgId,
               decoration: const InputDecoration(
                 labelText: 'Organization',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.apartment),
                 isDense: true,
               ),
-              items: orgProvider.organizations.map((org) => DropdownMenuItem<String>(
-                value: org['id'] as String,
-                child: Text(org['name'] as String),
-              )).toList(),
-              onChanged: (val) { if (val != null) orgProvider.setSelectedOrg(val); },
+              items: orgProvider.organizations
+                  .map(
+                    (org) => DropdownMenuItem<String>(
+                      value: org['id'] as String,
+                      child: Text(org['name'] as String),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) orgProvider.setSelectedOrg(val);
+              },
             ),
           ),
           // Tabs
@@ -115,7 +124,8 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
                       _PackageList(
                         orgId: orgProvider.selectedOrgId!,
                         status: 'WAITING',
-                        emptyMessage: 'No packages waiting.\nTap + to post your incoming package.',
+                        emptyMessage:
+                            'No packages waiting.\nTap + to post your incoming package.',
                         currentUserId: user?.uid,
                       ),
                       _PackageList(
@@ -130,7 +140,10 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PostPage())),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PostPage()),
+        ),
         icon: const Icon(Icons.add),
         label: const Text('Post Package'),
         backgroundColor: Colors.indigo,
@@ -170,7 +183,10 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
               ),
             ),
           ],
@@ -210,28 +226,39 @@ class _PackageList extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text('Error: ${snapshot.error}', textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red)),
-          ));
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Error: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
         }
 
         // Sort newest first client-side (avoids composite index requirement)
-        final docs = (snapshot.data?.docs ?? [])..sort((a, b) {
-          final aTs = (a.data() as Map)['timestamp'] as Timestamp?;
-          final bTs = (b.data() as Map)['timestamp'] as Timestamp?;
-          if (aTs == null) return 1;
-          if (bTs == null) return -1;
-          return bTs.compareTo(aTs);
-        });
+        final docs = (snapshot.data?.docs ?? [])
+          ..sort((a, b) {
+            final aTs = (a.data() as Map)['timestamp'] as Timestamp?;
+            final bTs = (b.data() as Map)['timestamp'] as Timestamp?;
+            if (aTs == null) return 1;
+            if (bTs == null) return -1;
+            return bTs.compareTo(aTs);
+          });
 
         if (docs.isEmpty) {
-          return Center(child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text(emptyMessage, textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 15)),
-          ));
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                emptyMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey, fontSize: 15),
+              ),
+            ),
+          );
         }
 
         return ListView.builder(
@@ -245,7 +272,9 @@ class _PackageList extends StatelessWidget {
             final resi = data['resi_number'] as String? ?? '';
             final ownerId = data['owner_id'] as String? ?? '';
             final ts = data['timestamp'] as Timestamp?;
-            final timeStr = ts != null ? ts.toDate().toLocal().toString().substring(0, 16) : 'Just now';
+            final timeStr = ts != null
+                ? ts.toDate().toLocal().toString().substring(0, 16)
+                : 'Just now';
             final isArrived = status == 'ARRIVED';
             final isOwner = currentUserId == ownerId;
 
@@ -255,12 +284,22 @@ class _PackageList extends StatelessWidget {
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               color: isArrived ? Colors.green.shade50 : null,
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: isArrived
-                    ? () => _showArrivedBottomSheet(context, docId, resi, ownerName, content, ownerId, currentUserId)
+                    ? () => _showArrivedBottomSheet(
+                        context,
+                        docId,
+                        resi,
+                        ownerName,
+                        content,
+                        ownerId,
+                        currentUserId,
+                      )
                     : () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -278,11 +317,15 @@ class _PackageList extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: isArrived ? Colors.green.shade100 : Colors.indigo.shade50,
+                          color: isArrived
+                              ? Colors.green.shade100
+                              : Colors.indigo.shade50,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
-                          isArrived ? Icons.check_circle_outline : Icons.inventory_2,
+                          isArrived
+                              ? Icons.check_circle_outline
+                              : Icons.inventory_2,
                           color: isArrived ? Colors.green : Colors.indigo,
                           size: 28,
                         ),
@@ -292,20 +335,45 @@ class _PackageList extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('For: $ownerName',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            Text(
+                              'For: $ownerName',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('Contents: $displayContent',
-                                style: TextStyle(color: Colors.grey.shade700)),
+                            Text(
+                              'Contents: $displayContent',
+                              style: TextStyle(color: Colors.grey.shade700),
+                            ),
                             const SizedBox(height: 2),
-                            Text(timeStr, style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                            Text(
+                              timeStr,
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 11,
+                              ),
+                            ),
                             const SizedBox(height: 4),
                             if (isArrived && isOwner)
-                              const Text('Tap to claim ›',
-                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 12))
+                              const Text(
+                                'Tap to claim ›',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              )
                             else if (!isArrived)
-                              const Text('Tap to confirm arrival ›',
-                                  style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.w600, fontSize: 12)),
+                              const Text(
+                                'Tap to confirm arrival ›',
+                                style: TextStyle(
+                                  color: Colors.indigo,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -322,13 +390,20 @@ class _PackageList extends StatelessWidget {
 }
 
 void _showArrivedBottomSheet(
-  BuildContext context, String docId, String resi, String ownerName, String content, String ownerId, String? currentUserId,
+  BuildContext context,
+  String docId,
+  String resi,
+  String ownerName,
+  String content,
+  String ownerId,
+  String? currentUserId,
 ) {
   final isOwner = currentUserId == ownerId;
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
     builder: (_) => Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -337,13 +412,22 @@ void _showArrivedBottomSheet(
         children: [
           const Icon(Icons.inventory_2, size: 48, color: Colors.green),
           const SizedBox(height: 8),
-          Text('Package Arrived!', textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            'Package Arrived!',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          Text('For: $ownerName', textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: Colors.black54)),
-          Text('Contents: $content', textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.black45)),
+          Text(
+            'For: $ownerName',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 15, color: Colors.black54),
+          ),
+          Text(
+            'Contents: $content',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.black45),
+          ),
           const SizedBox(height: 24),
           if (isOwner) ...[
             ElevatedButton.icon(
@@ -371,17 +455,27 @@ void _showArrivedBottomSheet(
             ),
           ],
           const SizedBox(height: 8),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
         ],
       ),
     ),
   );
 }
 
-Future<void> _claimPackage(BuildContext context, String docId, String resi) async {
+Future<void> _claimPackage(
+  BuildContext context,
+  String docId,
+  String resi,
+) async {
   Navigator.pop(context); // close bottom sheet
   try {
-    await FirebaseFirestore.instance.collection('lobby_parcels').doc(docId).update({'status': 'CLAIMED'});
+    await FirebaseFirestore.instance
+        .collection('lobby_parcels')
+        .doc(docId)
+        .update({'status': 'CLAIMED'});
     await DatabaseHelper.instance.insertLog({
       DatabaseHelper.colResi: resi,
       DatabaseHelper.colAction: 'CLAIMED',
@@ -390,12 +484,17 @@ Future<void> _claimPackage(BuildContext context, String docId, String resi) asyn
     });
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🎉 Package claimed! Check your History tab.'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('🎉 Package claimed! Check your History tab.'),
+          backgroundColor: Colors.green,
+        ),
       );
     }
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 }
