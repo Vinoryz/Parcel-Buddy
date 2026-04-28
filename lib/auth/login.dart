@@ -1,8 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,129 +9,107 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   bool _isLoading = false;
-  bool _isLoadingGuest = false;
-  String _errorCode = "";
+  String _error = '';
 
-  void navigateRegister() {
-    if (!context.mounted) return;
-    Navigator.pushReplacementNamed(context, 'register');
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
   }
 
-  void navigateHome(){
-    if (!context.mounted) return;
-    Navigator.pushReplacementNamed(context, 'home');
-  }
-
-  void signIn() async {
-    setState(() {
-      _isLoading = true;
-      _errorCode = "";
-    });
-
+  Future<void> _signIn() async {
+    setState(() { _isLoading = true; _error = ''; });
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text, 
-        password: _passwordController.text,
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
       );
-      String userId = userCredential.user!.uid;
-
-      await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      navigateHome();
+      // AuthWrapper will auto-navigate to HomeScreen
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorCode = e.code;
-        _isLoading = false;
-      });
+      setState(() => _error = e.message ?? e.code);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  void signInAsGuest() async {
-    setState(() {
-      _isLoadingGuest = true;
-      _errorCode = "";
-    });
-
-    try {
-      await FirebaseAuth.instance.signInAnonymously();
-      navigateHome();
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorCode = e.code;
-        _isLoadingGuest = false;
-      });
-    }
-    
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    double widthScreen = MediaQuery.of(context).size.width;
-    double heightScreen = MediaQuery.of(context).size.height;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(
-          widthScreen * 0.1, 
-          heightScreen * 0.1, 
-          widthScreen * 0.1, 
-          heightScreen * 0.1
-        ),
-        child: Center(
-          child: ListView(
-            children: [
-              // const SizedBox(height: 48),
-              Icon(Icons.lock_outline, size: 100, color: Colors.blue[200]),
-              // const SizedBox(height: 48),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(label: Text('Email')),
-              ),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(label: Text('Password')),
-              ),
-              const SizedBox(height: 24),
-              _errorCode != ""
-                ? Column(
-                    children: [Text(_errorCode), const SizedBox(height: 24)]) 
-                : const SizedBox(height: 0),
-              OutlinedButton(
-                onPressed: signIn, 
-                child: _isLoading ? const CircularProgressIndicator() : const Text('Login'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: signInAsGuest, 
-                child: _isLoadingGuest ? const CircularProgressIndicator() : const Text('Login as Guest'),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final h = constraints.maxHeight;
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.08, vertical: h * 0.04),
+              child: Column(
                 children: [
-                  const Text('Don\'t have an account?'),
-                  TextButton(
-                    onPressed: navigateRegister, 
-                    child: const Text('Register'),
+                  Icon(Icons.inventory_2_outlined, size: h * 0.1, color: Colors.indigo),
+                  SizedBox(height: h * 0.01),
+                  const Text('ParcelBuddy',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                  const SizedBox(height: 4),
+                  const Text('Sign in to continue', style: TextStyle(color: Colors.grey)),
+                  SizedBox(height: h * 0.05),
+                  TextField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  SizedBox(height: h * 0.02),
+                  TextField(
+                    controller: _passwordCtrl,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => _signIn(),
+                  ),
+                  if (_error.isNotEmpty) ...[
+                    SizedBox(height: h * 0.015),
+                    Text(_error, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+                  ],
+                  SizedBox(height: h * 0.03),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _signIn,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: h * 0.018),
+                        backgroundColor: Colors.indigo,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(height: 20, width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Login'),
+                    ),
+                  ),
+                  SizedBox(height: h * 0.02),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Don't have an account?"),
+                      TextButton(
+                        onPressed: () => Navigator.pushNamed(context, 'register'),
+                        child: const Text('Register'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
