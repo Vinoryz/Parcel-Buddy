@@ -54,6 +54,7 @@ class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMix
       payload['ownerName'] ?? 'Unknown',
       payload['content'] ?? '',
       payload['ownerId'] ?? '',
+      FirebaseAuth.instance.currentUser?.uid,
     );
   }
 
@@ -259,7 +260,7 @@ class _PackageList extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: isArrived
-                    ? () => _showArrivedBottomSheet(context, docId, resi, ownerName, content, ownerId)
+                    ? () => _showArrivedBottomSheet(context, docId, resi, ownerName, content, ownerId, currentUserId)
                     : () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -318,83 +319,83 @@ class _PackageList extends StatelessWidget {
       },
     );
   }
+}
 
-  void _showArrivedBottomSheet(
-    BuildContext context, String docId, String resi, String ownerName, String content, String ownerId,
-  ) {
-    final isOwner = currentUserId == ownerId;
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.inventory_2, size: 48, color: Colors.green),
-            const SizedBox(height: 8),
-            Text('Package Arrived!', textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('For: $ownerName', textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 15, color: Colors.black54)),
-            Text('Contents: $content', textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.black45)),
-            const SizedBox(height: 24),
-            if (isOwner) ...[
-              ElevatedButton.icon(
-                onPressed: () => _claimPackage(context, docId, resi),
-                icon: const Icon(Icons.done_all),
-                label: const Text('Claim My Package'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
+void _showArrivedBottomSheet(
+  BuildContext context, String docId, String resi, String ownerName, String content, String ownerId, String? currentUserId,
+) {
+  final isOwner = currentUserId == ownerId;
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (_) => Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.inventory_2, size: 48, color: Colors.green),
+          const SizedBox(height: 8),
+          Text('Package Arrived!', textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('For: $ownerName', textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: Colors.black54)),
+          Text('Contents: $content', textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black45)),
+          const SizedBox(height: 24),
+          if (isOwner) ...[
+            ElevatedButton.icon(
+              onPressed: () => _claimPackage(context, docId, resi),
+              icon: const Icon(Icons.done_all),
+              label: const Text('Claim My Package'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
               ),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Only the package owner can claim this package.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
-            const SizedBox(height: 8),
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+              child: const Text(
+                'Only the package owner can claim this package.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
           ],
-        ),
+          const SizedBox(height: 8),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Future<void> _claimPackage(BuildContext context, String docId, String resi) async {
-    Navigator.pop(context); // close bottom sheet
-    try {
-      await FirebaseFirestore.instance.collection('lobby_parcels').doc(docId).update({'status': 'CLAIMED'});
-      await DatabaseHelper.instance.insertLog({
-        DatabaseHelper.colResi: resi,
-        DatabaseHelper.colAction: 'CLAIMED',
-        DatabaseHelper.colNotes: '',
-        DatabaseHelper.colDate: DateTime.now().toIso8601String(),
-      });
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('🎉 Package claimed! Check your History tab.'), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+Future<void> _claimPackage(BuildContext context, String docId, String resi) async {
+  Navigator.pop(context); // close bottom sheet
+  try {
+    await FirebaseFirestore.instance.collection('lobby_parcels').doc(docId).update({'status': 'CLAIMED'});
+    await DatabaseHelper.instance.insertLog({
+      DatabaseHelper.colResi: resi,
+      DatabaseHelper.colAction: 'CLAIMED',
+      DatabaseHelper.colNotes: '',
+      DatabaseHelper.colDate: DateTime.now().toIso8601String(),
+    });
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('🎉 Package claimed! Check your History tab.'), backgroundColor: Colors.green),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 }
