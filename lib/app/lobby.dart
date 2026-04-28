@@ -476,11 +476,25 @@ Future<void> _claimPackage(
         .collection('lobby_parcels')
         .doc(docId)
         .update({'status': 'CLAIMED'});
-    await DatabaseHelper.instance.insertLog({
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final nowStr = DateTime.now().toIso8601String();
+
+    final localId = await DatabaseHelper.instance.insertLog({
+      DatabaseHelper.colUserId: user.uid,
       DatabaseHelper.colResi: resi,
       DatabaseHelper.colAction: 'CLAIMED',
       DatabaseHelper.colNotes: '',
-      DatabaseHelper.colDate: DateTime.now().toIso8601String(),
+      DatabaseHelper.colDate: nowStr,
+    });
+
+    await FirebaseFirestore.instance.collection('user_history').add({
+      'userId': user.uid,
+      'resi_number': resi,
+      'action_type': 'CLAIMED',
+      'user_notes': '',
+      'recorded_at': nowStr,
+      'local_id': localId,
     });
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

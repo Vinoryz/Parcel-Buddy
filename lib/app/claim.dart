@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -121,11 +121,26 @@ class _ClaimPageState extends State<ClaimPage> {
           .update({'status': 'CLAIMED'});
 
       // 2. Save to local SQLite history
-      await DatabaseHelper.instance.insertLog({
+      final nowStr = DateTime.now().toIso8601String();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final localId = await DatabaseHelper.instance.insertLog({
+        DatabaseHelper.colUserId: user.uid,
         DatabaseHelper.colResi: widget.expectedResi,
         DatabaseHelper.colAction: 'CLAIMED',
         DatabaseHelper.colNotes: '',
-        DatabaseHelper.colDate: DateTime.now().toIso8601String(),
+        DatabaseHelper.colDate: nowStr,
+      });
+
+      // 3. Backup to Firestore
+      await FirebaseFirestore.instance.collection('user_history').add({
+        'userId': user.uid,
+        'resi_number': widget.expectedResi,
+        'action_type': 'CLAIMED',
+        'user_notes': '',
+        'recorded_at': nowStr,
+        'local_id': localId,
       });
 
       if (mounted) {

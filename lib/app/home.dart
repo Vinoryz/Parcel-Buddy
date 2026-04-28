@@ -18,11 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1; // Start on Lobby
 
-  static const List<Widget> _pages = [
-    ScanPage(),
-    LobbyPage(),
-    HistoryPage(),
-  ];
+  static const List<Widget> _pages = [ScanPage(), LobbyPage(), HistoryPage()];
 
   static const List<String> _titles = [
     'Confirm Arrival',
@@ -38,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _requestNotificationPermission();
     _listenForNotifications();
-    
+
     // Listen for notification taps to switch to Lobby tab
     _actionSub = NotificationService.actionStream.stream.listen((payload) {
       if (mounted && _selectedIndex != 1) {
@@ -69,44 +65,49 @@ class _HomeScreenState extends State<HomeScreen> {
         .where('read', isEqualTo: false)
         .snapshots()
         .listen((snapshot) {
-      for (final change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data() as Map<String, dynamic>;
-          final msg = data['message'] as String? ?? 'Your package has arrived!';
-          final packageId = data['packageId'] as String?;
+          for (final change in snapshot.docChanges) {
+            if (change.type == DocumentChangeType.added) {
+              final data = change.doc.data() as Map<String, dynamic>;
+              final msg =
+                  data['message'] as String? ?? 'Your package has arrived!';
+              final packageId = data['packageId'] as String?;
 
-          // Mark as read so we don't re-show it
-          change.doc.reference.update({'read': true});
+              // Mark as read so we don't re-show it
+              change.doc.reference.update({'read': true});
 
-          if (packageId != null) {
-            // Fetch package details for the payload
-            FirebaseFirestore.instance.collection('lobby_parcels').doc(packageId).get().then((docSnap) {
-              if (docSnap.exists) {
-                final pData = docSnap.data()!;
-                // Fire a real local push notification with payload
+              if (packageId != null) {
+                // Fetch package details for the payload
+                FirebaseFirestore.instance
+                    .collection('lobby_parcels')
+                    .doc(packageId)
+                    .get()
+                    .then((docSnap) {
+                      if (docSnap.exists) {
+                        final pData = docSnap.data()!;
+                        // Fire a real local push notification with payload
+                        NotificationService.showPackageArrived(
+                          title: '📦 Package Arrived!',
+                          body: msg,
+                          payload: {
+                            'docId': packageId,
+                            'resi': pData['resi_number']?.toString() ?? '',
+                            'ownerName': pData['owner_name']?.toString() ?? '',
+                            'content': pData['content']?.toString() ?? '',
+                            'ownerId': pData['owner_id']?.toString() ?? '',
+                          },
+                        );
+                      }
+                    });
+              } else {
                 NotificationService.showPackageArrived(
                   title: '📦 Package Arrived!',
                   body: msg,
-                  payload: {
-                    'docId': packageId,
-                    'resi': pData['resi_number']?.toString() ?? '',
-                    'ownerName': pData['owner_name']?.toString() ?? '',
-                    'content': pData['content']?.toString() ?? '',
-                    'ownerId': pData['owner_id']?.toString() ?? '',
-                  },
+                  payload: {},
                 );
               }
-            });
-          } else {
-             NotificationService.showPackageArrived(
-               title: '📦 Package Arrived!',
-               body: msg,
-               payload: {},
-             );
+            }
           }
-        }
-      }
-    });
+        });
   }
 
   @override
@@ -128,13 +129,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
         selectedItemColor: Colors.indigo,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.qr_code_scanner),
+            label: 'Scan',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Lobby'),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
         ],

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:midterm/db/database_helper.dart';
 
@@ -19,13 +21,46 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _loadLogs() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
     setState(() => _isLoading = true);
-    final data = await DatabaseHelper.instance.queryAllLogs();
+    final data = await DatabaseHelper.instance.queryUserLogs(user.uid);
     if (mounted) {
       setState(() {
         _logs = data;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _restoreFromCloud() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('user_history')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        await DatabaseHelper.instance.insertLogIfNotExists({
+          DatabaseHelper.colUserId: user.uid,
+          DatabaseHelper.colResi: data['resi_number'],
+          DatabaseHelper.colAction: data['action_type'],
+          DatabaseHelper.colNotes: data['user_notes'],
+          DatabaseHelper.colDate: data['recorded_at'],
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to restore from cloud: $e')));
+      }
+    } finally {
+      _loadLogs();
     }
   }
 
@@ -52,6 +87,14 @@ class _HistoryPageState extends State<HistoryPage> {
             onPressed: () async {
               await DatabaseHelper.instance.updateNote(id, controller.text);
               if (ctx.mounted) Navigator.pop(ctx);
+              
+              // Sync to cloud in background
+              FirebaseFirestore.instance.collection('user_history').where('local_id', isEqualTo: id).get().then((snap) {
+                for (var doc in snap.docs) {
+                  doc.reference.update({'user_notes': controller.text});
+                }
+              });
+              
               _loadLogs();
             },
             child: const Text('Save'),
@@ -87,6 +130,14 @@ class _HistoryPageState extends State<HistoryPage> {
     );
     if (confirmed == true) {
       await DatabaseHelper.instance.deleteLog(id);
+      
+      // Sync delete to cloud
+      FirebaseFirestore.instance.collection('user_history').where('local_id', isEqualTo: id).get().then((snap) {
+        for (var doc in snap.docs) {
+          doc.reference.delete();
+        }
+      });
+      
       _loadLogs();
     }
   }
@@ -99,17 +150,27 @@ class _HistoryPageState extends State<HistoryPage> {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.history_outlined, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
+          children: [
+            const Icon(Icons.history_outlined, size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
               'No claim history yet.',
               style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'Claimed packages will appear here.',
               style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _restoreFromCloud,
+              icon: const Icon(Icons.cloud_download_outlined),
+              label: const Text('Restore from Cloud'),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.indigo,
+                backgroundColor: Colors.indigo.shade50,
+              ),
             ),
           ],
         ),
@@ -117,7 +178,7 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadLogs,
+      onRefresh: _restoreFromCloud,
       child: ListView.builder(
         padding: const EdgeInsets.all(12),
         itemCount: _logs.length,
