@@ -6,11 +6,13 @@ import 'package:midterm/auth/login.dart';
 import 'package:midterm/auth/register.dart';
 import 'package:midterm/firebase_options.dart';
 import 'package:midterm/providers/organization_provider.dart';
+import 'package:midterm/services/notification_service.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.initialize();
   runApp(const ParcelBuddy());
 }
 

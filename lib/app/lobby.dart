@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:midterm/app/confirm_arrival.dart';
 import 'package:midterm/app/post.dart';
 import 'package:midterm/db/database_helper.dart';
 import 'package:midterm/providers/organization_provider.dart';
+import 'package:midterm/services/notification_service.dart';
 
 class LobbyPage extends StatefulWidget {
   const LobbyPage({super.key});
@@ -17,16 +20,47 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  StreamSubscription? _actionSub;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    _actionSub = NotificationService.actionStream.stream.listen(_handleNotificationTap);
+
+    // Check if app was launched from terminated state via notification
+    AwesomeNotifications().getInitialNotificationAction().then((action) {
+      if (action != null && action.payload != null) {
+        // Small delay to ensure the widget tree is fully mounted before showing bottom sheet
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _handleNotificationTap(action.payload!);
+        });
+      }
+    });
+  }
+
+  void _handleNotificationTap(Map<String, String?> payload) {
+    if (!mounted || payload['docId'] == null) return;
+    
+    // Switch to Arrived tab
+    _tabController.animateTo(1);
+    
+    // Open bottom sheet
+    _showArrivedBottomSheet(
+      context,
+      payload['docId']!,
+      payload['resi'] ?? '',
+      payload['ownerName'] ?? 'Unknown',
+      payload['content'] ?? '',
+      payload['ownerId'] ?? '',
+    );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _actionSub?.cancel();
     super.dispose();
   }
 

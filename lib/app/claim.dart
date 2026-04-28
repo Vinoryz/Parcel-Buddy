@@ -9,7 +9,11 @@ class ClaimPage extends StatefulWidget {
   final String packageId;
   final String expectedResi;
 
-  const ClaimPage({super.key, required this.packageId, required this.expectedResi});
+  const ClaimPage({
+    super.key,
+    required this.packageId,
+    required this.expectedResi,
+  });
 
   @override
   State<ClaimPage> createState() => _ClaimPageState();
@@ -37,18 +41,26 @@ class _ClaimPageState extends State<ClaimPage> {
 
     try {
       final recognized = await recognizer.processImage(inputImage);
-      final match = RegExp(r'\b[A-Z0-9]{8,20}\b').firstMatch(recognized.text.toUpperCase());
+      final match = RegExp(
+        r'\b[A-Z0-9]{8,20}\b',
+      ).firstMatch(recognized.text.toUpperCase());
       if (match != null) {
         _resiController.text = match.group(0)!;
         setState(() => _scanSuccess = true);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Could not find resi in scan. Type it manually.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not find resi in scan. Type it manually.'),
+            ),
+          );
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Scan error: $e')));
     } finally {
       recognizer.close();
     }
@@ -59,14 +71,18 @@ class _ClaimPageState extends State<ClaimPage> {
   Future<void> _verify() async {
     final input = _resiController.text.trim().toUpperCase();
     if (input.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter the resi number.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the resi number.')),
+      );
       return;
     }
 
     if (input != widget.expectedResi.toUpperCase()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('❌ Resi number does not match! Make sure you have the right package.'),
+          content: Text(
+            '❌ Resi number does not match! Make sure you have the right package.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -101,7 +117,9 @@ class _ClaimPageState extends State<ClaimPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Claim failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Claim failed: $e')));
         setState(() => _isLoading = false);
       }
     }
@@ -129,7 +147,9 @@ class _ClaimPageState extends State<ClaimPage> {
               onPressed: _isLoading ? null : _scanResi,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Scan Label'),
-              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -139,14 +159,23 @@ class _ClaimPageState extends State<ClaimPage> {
                 labelText: 'Resi / Tracking Number',
                 prefixIcon: const Icon(Icons.numbers),
                 border: const OutlineInputBorder(),
-                suffixIcon: _scanSuccess ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                suffixIcon: _scanSuccess
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
               ),
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: _isLoading ? null : _verify,
               icon: _isLoading
-                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.verified_outlined),
               label: const Text('Verify & Claim'),
               style: ElevatedButton.styleFrom(
