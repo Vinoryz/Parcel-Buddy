@@ -1,167 +1,76 @@
-Here is the **Official Product Requirements Document (PRD) and Technical Development Plan** for **ParcelBuddy**.
+# 📦 ParcelBuddy
 
-As your Senior System Analyst, I have structured this to ensure you hit every percentage point of your grading rubric while maintaining a "lean" architecture that can be finished in a 5-day sprint.
+ParcelBuddy is a logistics and community utility application designed to solve "Lobby Chaos" in student housing, dorms, and apartment complexes. Instead of scrolling through unorganized group chats to see if a package has arrived, residents use ParcelBuddy to track expected packages and confirm arrivals for themselves or others using Optical Character Recognition (OCR).
 
------
+---
 
-# 📦 Project Plan: ParcelBuddy
+## ✨ Features
 
-**Classification:** Logistics / Community Utility  
-**Sprint Duration:** 5 Days
+- **🏢 Organization System**: Join your specific dorm or building using a unique 6-digit invite code.
+- **🕒 Real-Time Lobby**: A live, tabbed dashboard (Incoming / Arrived) powered by Cloud Firestore.
+- **📸 ML Kit OCR Scanner**: Automatically read and extract Resi (Tracking) numbers directly from physical package labels using the device camera.
+- **🔔 Local Push Notifications**: Receive real-time push notification banners (even in the background) as soon as someone confirms your package has arrived.
+- **🔒 Privacy First**: Package contents are masked/hidden from everyone except the verified owner.
+- **🗄️ Local History Logs**: A personal database of all your package activity (Posting, Arriving, Claiming) stored locally on your device via SQLite. You can add personal notes or delete logs as needed.
+- **🔐 Secure Authentication**: Firebase Email & Password authentication ensures only verified residents can access the lobby.
 
------
+---
 
-## 1\. Product Vision
+## 🛠️ Technology Stack & Requirements
 
-ParcelBuddy solves the "Lobby Chaos" in student housing. Instead of scrolling through unorganized WhatsApp groups to see if a package has arrived, residents use ParcelBuddy to scan packages they see in the lobby. This creates a searchable, real-time "Digital Lobby" for the entire building.
+This app was built as a Midterm Project to demonstrate proficiency in modern mobile development requirements:
 
------
+| Requirement | Implementation |
+| :--- | :--- |
+| **Relational DB CRUD** | **SQLite (`sqflite`)**: Local history tracking with full Create, Read, Update (Notes), and Delete (Swipe) capabilities. |
+| **Authentication** | **Firebase Auth**: Email and Password registration/login with secure session management. |
+| **Cloud Storage/NoSQL** | **Cloud Firestore**: Real-time synchronization of the shared Lobby and live notification dispatching. |
+| **Push Notifications** | **`awesome_notifications`**: Background and foreground local notification banners triggered by Firestore listeners. |
+| **Smartphone Hardware** | **Camera & `google_mlkit_text_recognition`**: Hardware camera integration for smart tracking number extraction. |
 
-## 2\. Technical Requirement Mapping (Grading Rubric)
+---
 
-| Requirement             | Weight | System Implementation                                                                                                                         |
-| :---------------------- | :----- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Relational DB CRUD**  | 10%    | **Room/SQLite:** Local "Personal Log" of all packages you have personally scanned or claimed. Users can *Update* notes and *Delete* old logs. |
-| **Firebase Auth**       | 5%     | **Email/Password Provider:** Restricts app access to verified dorm residents only.                                                            |
-| **Storing in Firebase** | 5%     | **Firestore:** Active "Lobby" list (Real-time). <br> **Firebase Storage:** Stores photos of package labels.                                   |
-| **Notifications**       | 5%     | **FCM (Firebase Cloud Messaging):** Triggers a "Package Alert" to all users when a new parcel is scanned into the lobby.                      |
-| **Smartphone Resource** | 5%     | **Hardware Camera:** Used to capture the package label for visual identification.                                                             |
-| **Demo & GitHub**       | 10%    | **Documentation:** Professional README, clean architecture, and a 3-minute walkthrough video.                                                 |
+## 🚀 Getting Started
 
------
+### Prerequisites
+- Flutter SDK (latest stable)
+- Android Studio / VS Code
+- A connected physical device or emulator (Hardware camera recommended for OCR testing)
 
-## 3\. System Architecture & Data Schema
+### Installation
 
-### A. Cloud Schema (Firestore)
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd midterm
+   ```
 
-**Collection: `organizations`**
+2. **Install Dependencies**
+   ```bash
+   flutter pub get
+   ```
 
-  * `orgId` (String): Document ID
-  * `name` (String)
-  * `address` (String)
+3. **Firebase Configuration**
+   This project uses `flutterfire_cli` for Firebase initialization. 
+   Make sure you have your `google-services.json` (Android) / `GoogleService-Info.plist` (iOS) configured for your Firebase project.
 
-**Collection: `memberships`**
+4. **Run the App**
+   ```bash
+   flutter run
+   ```
 
-  * `membershipId` (String): Document ID
-  * `userId` (String)
-  * `orgId` (String)
-  * `role` (String): "admin" or "member" (for managing members only)
-  * `joinedAt` (Timestamp)
+---
 
-**Collection: `users`**
+## 📱 App Walkthrough
 
-  * `userId` (String): Document ID
-  * `name`, `email`, etc.
-  * `organizations`: [orgId, orgId, ...]
+1. **Auth**: Register a new account and specify your Full Name (used for matching packages).
+2. **Join Org**: Enter a 6-digit invite code to join your building's lobby (or create a new organization if you don't have one).
+3. **Post (Waiting)**: Post a package you are expecting. You can use your gallery to upload a screenshot of your receipt, and OCR will extract the tracking number.
+4. **Confirm Arrival**: When a package physically arrives in the lobby, tap the "Incoming" package or use the "Scan" tab. Use the camera to scan the physical label.
+5. **Notify**: Once scanned, the package status changes to `ARRIVED`, and the owner immediately receives a push notification on their phone.
+6. **Claim**: The owner taps the Arrived package to claim it, clearing it from the lobby and adding it to their SQLite History.
 
-**Collection: `lobby_parcels`**
+---
 
-  * `id` (String): Document ID
-  * `resi_number` (String): Receipt/Tracking number
-  * `orgId` (String): Organization this package belongs to
-  * `uploader_name` (String): Name of the student who scanned it
-  * `uploader_id` (String): User ID of uploader (for edit/delete restriction)
-  * `status` (String): "WAITING" or "CLAIMED"
-  * `timestamp` (ServerTimestamp)
-
-> Only the uploader can edit or delete their package. Other organization members can view but not modify packages.
-
-### B. Local Relational Schema (Room DB)
-
-**Table: `user_history`**
-
-  * `id` (Int, Primary Key)
-  * `resi_number` (String)
-  * `action_type` (String): e.g., "FOUND" or "RECEIVED"
-  * `user_notes` (String): **Editable field (Update)**
-  * `recorded_at` (String)
-
------
-
-## 4\. The 5-Day Agile Sprint Plan
-
-### **Day 1: Foundation & Authentication**
-
-  * **Goal:** Create project and secure it.
-  * **Tasks:**
-    1.  Initialize Android/Flutter project.
-    2.  Connect Firebase via the Firebase Console.
-    3.  Implement **Firebase Auth** (Signup/Login screens).
-    4.  Build the Bottom Navigation (Lobby, Scan, History).
-
-### **Day 2: Hardware Integration & Cloud Storage**
-
-  * **Goal:** Get the camera talking to the cloud.
-  * **Tasks:**
-    1.  Implement **Camera Intent**: User takes a photo of a package.
-    2.  Setup **Firebase Storage**: Upload the image and get the `downloadURL`.
-    3.  Create the "Scan Form": Input Resi number + the photo preview.
-
-### **Day 3: Real-time Lobby (The "Single Source of Truth")**
-
-  * **Goal:** Sync data across all users.
-  * **Tasks:**
-    1.  Implement **Firestore CRUD**: "Upload" pushes package data to the cloud.
-    2.  Build the **Home Screen**: A `RecyclerView` that listens to Firestore.
-    3.  Implement the **Claim Button**: Changes status from "WAITING" to "CLAIMED" in the cloud.
-
-### **Day 4: Local Persistence & Notifications**
-
-  * **Goal:** Satisfy the Relational DB and Alerts requirements.
-  * **Tasks:**
-    1.  Setup **Room Database**: When a user scans/claims a package, save a record to the local SQLite DB.
-    2.  Implement **CRUD on Local DB**: Build the "History" tab where users can edit their personal notes or delete records.
-    3.  Setup **Firebase Cloud Messaging**: Send a simple push notification when a new document is added to the Firestore collection.
-
-### **Day 5: QA, UI Polish, & Submission**
-
-  * **Goal:** Ensure "A" grade quality.
-  * **Tasks:**
-    1.  **Edge Case Testing:** Check for "No Internet" states or empty Resi fields.
-    2.  **UI Design:** Add consistent colors, rounded corners, and a professional app icon.
-    3.  **Demo Video:** Record a screen-capture walkthrough.
-    4.  **GitHub:** Push final code with a clean README.
-
------
-
-## 5\. Analyst’s "Success Tips" for Undergraduates
-
-1.  **MVP First:** Don't spend 5 hours on a logo. Get the Camera-to-Firebase upload working first.
-2.  **ML Kit (Optional Bonus):** If you finish Day 2 early, use **Google ML Kit** to automatically read the text from the package photo so the user doesn't have to type the Resi number. This will impress your lecturer.
-3.  **The "Wait" State:** Since the project is 40% of your grade, make sure your Demo Video explicitly points out every requirement (e.g., "Now I am editing a local record, which demonstrates CRUD on a relational database").
-
-**You are now cleared for development. Good luck, Dev.**
-
------
-
-## ⚡ Fast-Track Implementation Plan (Last 1 Day 20 Hours)
-
-1. **Organization & Membership**
-   - Implement Firestore collections: `organizations`, `memberships`, `users`, `lobby_parcels`.
-   - On login, fetch user’s organizations and store in app state.
-   - On Scan/Lobby/History, let user select organization from a dropdown (if >1).
-
-2. **Scan & Confirm Package (No Image Upload)**
-   - Scan page: allow manual resi entry or scan (barcode/QR/OCR).
-   - After resi is entered/scanned, query `lobby_parcels` for a match in the selected organization.
-   - If found, show package info and allow confirmation/claim.
-   - If not found, show “No package found” message.
-
-3. **Lobby Page**
-   - Show real-time list of packages for the selected organization.
-   - Only uploader can see edit/delete buttons for their own packages.
-   - Others can only view.
-
-4. **History Page**
-   - Show user’s personal log (from local DB or Firestore, as time allows).
-   - Allow editing notes and deleting records.
-
-5. **Roles & Membership Management**
-   - Use `role` in `memberships` for admin/member (admin can manage members, not packages).
-   - Only uploader can edit/delete their package.
-
-6. **Polish & Submission**
-   - Add basic validation (required fields, resi format).
-   - Handle edge cases (no internet, empty fields).
-   - Polish UI minimally (colors, icons).
-   - Prepare demo video and update README.
+## 📝 License
+This project is created for educational purposes as part of the Mobile Device Programming coursework.
