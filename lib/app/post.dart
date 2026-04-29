@@ -49,7 +49,10 @@ class _PostPageState extends State<PostPage> {
           barcodeFound = true;
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('✓ Resi extracted from barcode!'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('✓ Resi extracted from barcode!'),
+                backgroundColor: Colors.green,
+              ),
             );
           }
           break;
@@ -58,24 +61,36 @@ class _PostPageState extends State<PostPage> {
 
       if (!barcodeFound) {
         final recognized = await textRecognizer.processImage(inputImage);
-        final match = RegExp(r'\b[A-Z0-9]{8,20}\b').firstMatch(recognized.text.toUpperCase());
+        final match = RegExp(
+          r'\b[A-Z0-9]{8,20}\b',
+        ).firstMatch(recognized.text.toUpperCase());
         if (match != null) {
           _resiCtrl.text = match.group(0)!;
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('✓ Resi extracted!'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('✓ Resi extracted!'),
+                backgroundColor: Colors.green,
+              ),
             );
           }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No barcode or resi found in image. Type it manually.')),
+              const SnackBar(
+                content: Text(
+                  'No barcode or resi found in image. Type it manually.',
+                ),
+              ),
             );
           }
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scan error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Scan error: $e')));
     } finally {
       textRecognizer.close();
       barcodeScanner.close();
@@ -89,10 +104,15 @@ class _PostPageState extends State<PostPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final orgId = Provider.of<OrganizationProvider>(context, listen: false).selectedOrgId;
+    final orgId = Provider.of<OrganizationProvider>(
+      context,
+      listen: false,
+    ).selectedOrgId;
     if (orgId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select an organization in the Account tab first.')),
+        const SnackBar(
+          content: Text('Select an organization in the Account tab first.'),
+        ),
       );
       return;
     }
@@ -100,8 +120,12 @@ class _PostPageState extends State<PostPage> {
     setState(() => _isLoading = true);
     try {
       // Fetch owner's display name
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final ownerName = (userDoc.data()?['name'] as String?) ?? user.email ?? 'Unknown';
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final ownerName =
+          (userDoc.data()?['name'] as String?) ?? user.email ?? 'Unknown';
       final resi = _resiCtrl.text.trim().toUpperCase();
 
       // Duplicate check
@@ -115,7 +139,10 @@ class _PostPageState extends State<PostPage> {
       if (dup.docs.isNotEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('This resi is already in the lobby.'), backgroundColor: Colors.orange),
+            const SnackBar(
+              content: Text('This resi is already in the lobby.'),
+              backgroundColor: Colors.orange,
+            ),
           );
         }
         setState(() => _isLoading = false);
@@ -134,12 +161,18 @@ class _PostPageState extends State<PostPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Posted to lobby! ✅'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Posted to lobby! ✅'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -148,7 +181,10 @@ class _PostPageState extends State<PostPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Post Incoming Package'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Post Incoming Package'),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -180,20 +216,22 @@ class _PostPageState extends State<PostPage> {
               const SizedBox(height: 24),
               Row(
                 children: [
+                  // Expanded(
+                  //   child: OutlinedButton.icon(
+                  //     onPressed: _isLoading ? null : () => _scanLabel(ImageSource.camera),
+                  //     icon: const Icon(Icons.camera_alt),
+                  //     label: const FittedBox(child: Text('Camera')),
+                  //     style: OutlinedButton.styleFrom(
+                  //       padding: const EdgeInsets.symmetric(vertical: 16),
+                  //     ),
+                  //   ),
+                  // ),
+                  // const SizedBox(width: 16),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : () => _scanLabel(ImageSource.camera),
-                      icon: const Icon(Icons.camera_alt),
-                      label: const FittedBox(child: Text('Camera')),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : () => _scanLabel(ImageSource.gallery),
+                      onPressed: _isLoading
+                          ? null
+                          : () => _scanLabel(ImageSource.gallery),
                       icon: const Icon(Icons.photo_library),
                       label: const FittedBox(child: Text('Gallery')),
                       style: OutlinedButton.styleFrom(
@@ -205,14 +243,19 @@ class _PostPageState extends State<PostPage> {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Row(children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('or type manually', style: TextStyle(color: Colors.grey)),
-                  ),
-                  Expanded(child: Divider()),
-                ]),
+                child: Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        'or type manually',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
               ),
               TextFormField(
                 controller: _resiCtrl,
@@ -222,7 +265,8 @@ class _PostPageState extends State<PostPage> {
                   prefixIcon: Icon(Icons.numbers),
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -233,14 +277,21 @@ class _PostPageState extends State<PostPage> {
                   prefixIcon: Icon(Icons.inventory_2_outlined),
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _submit,
                 icon: _isLoading
-                    ? const SizedBox(height: 18, width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Icon(Icons.upload),
                 label: const Text('Post to Lobby'),
                 style: ElevatedButton.styleFrom(
